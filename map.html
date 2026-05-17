@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+  <style>
+
+  #conteneur {
+  position: relative;
+}
+
+#map { 
+  height: 800px; 
+}
+
+#controles {
+  position: absolute;
+  top: 10px;
+  left: 50px;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+  width: 250px;
+}
+
+#legende {
+  position: absolute;
+  bottom: 30px;
+  right: 10px;
+  background: white;
+  padding: 10px;
+  border-radius: 5px;
+  z-index: 1000;
+}
+
+#legende span {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  margin-right: 5px;
+}
+
+#resultats {
+  list-style: none;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+#resultats li {
+  cursor: pointer;
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+}
+
+#resultats li:hover {
+  background: #f0f0f0;
+}
+
+  </style>
+</head>
+<body>
+  
+  <div id="conteneur">
+  <div id="map"></div>
+  
+  <div id="controles">
+    <input type="text" id="recherche" placeholder="Rechercher un site..." oninput="rechercher()">
+    <ul id="resultats"></ul>
+    <label><input type="checkbox" checked onclick="toggleVelo()"> Sites accessibles en vélo</label><br>
+    <label><input type="checkbox" checked onclick="toggleBus()"> Sites accessibles en bus</label><br>
+    <label><input type="checkbox" checked onclick="toggleHebvelo()"> Hébergement accessible en vélo</label><br>
+    <label><input type="checkbox" checked onclick="toggleHebbus()"> Hébergement accessible en bus</label>
+  </div>
+</div>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+  <script>
+    let map = L.map('map').setView([43.9, 5.1], 10)
+    let osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png')
+
+let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+
+osm.addTo(map)
+
+let fondsDeCartes = {
+  "OpenStreetMap": osm,
+  "Satellite": satellite
+}
+
+L.control.layers(fondsDeCartes).addTo(map)
+    let toutesLesDonnees = []
+    let clusterVelo = L.markerClusterGroup()
+    let clusterBus = L.markerClusterGroup()
+    let clusterHebvelo = L.markerClusterGroup()
+    let clusterHebbus = L.markerClusterGroup()
+    let visibleVelo = true
+    let visibleBus = true
+    let visibleHebvelo = true
+    let visibleHebbus = true
+
+    function rechercher() {
+  let texte = document.getElementById('recherche').value.toLowerCase()
+  let resultats = document.getElementById('resultats')
+  resultats.innerHTML = ''
+
+  if (texte.length < 2) return
+
+  let filtres = toutesLesDonnees.filter(function(feature) {
+    return feature.properties.Nom.toLowerCase().includes(texte)
+  })
+
+  filtres.forEach(function(feature) {
+    let li = document.createElement('li')
+    li.textContent = feature.properties.Nom + ' - ' + feature.properties.Commune
+    li.onclick = function() {
+      let lat = feature.geometry.coordinates[1]
+      let lng = feature.geometry.coordinates[0]
+      map.setView([lat, lng], 15)
+    }
+    resultats.appendChild(li)
+  })
+}
+
+function creerGraphique() {
+  let communes = {}
+
+  toutesLesDonnees.forEach(function(feature) {
+    let commune = feature.properties.Commune
+    if (commune) {
+      if (communes[commune]) {
+        communes[commune]++
+      } else {
+        communes[commune] = 1
+      }
+    }
+  })
+
+  let labels = Object.keys(communes)
+  let valeurs = Object.values(communes)
+
+  let ctx = document.getElementById('monGraphique').getContext('2d')
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Nombre de sites',
+        data: valeurs,
+        backgroundColor: 'green'
+      }]
+    }
+  })
+}
+
+    function toggleVelo() {
+      if (visibleVelo) {
+        map.removeLayer(clusterVelo)
+        visibleVelo = false
+      } else {
+        map.addLayer(clusterVelo)
+        visibleVelo = true
+      }
+    }
+
+    function toggleBus() {
+      if (visibleBus) {
+        map.removeLayer(clusterBus)
+        visibleBus = false
+      } else {
+        map.addLayer(clusterBus)
+        visibleBus = true
+      }
+    }
+
+    function toggleHebvelo() {
+      if (visibleHebvelo) {
+        map.removeLayer(clusterHebvelo)
+        visibleHebvelo = false
+      } else {
+        map.addLayer(clusterHebvelo)
+        visibleHebvelo = true
+      }
+    }
+
+    function toggleHebbus() {
+      if (visibleHebbus) {
+        map.removeLayer(clusterHebbus)
+        visibleHebbus = false
+      } else {
+        map.addLayer(clusterHebbus)
+        visibleHebbus = true
+      }
+    }
+
+    fetch('http://127.0.0.1:8000/sites-velo')
+      .then(response => response.json())
+      .then(data => {
+        let couche = L.geoJSON(data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, { color: 'green', radius: 8 })
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup(
+              "<b>" + feature.properties.Nom + "</b><br>" +
+              "Commune : " + feature.properties.Commune + "<br>" +
+              "Desserte : " + feature.properties.desserte
+            )
+          }
+        })
+        toutesLesDonnees = toutesLesDonnees.concat(data.features)
+        clusterVelo.addLayer(couche)
+        clusterVelo.addTo(map)
+      })
+
+    fetch("site de visite accessible et proche d'un arrêt observant plus d'un passage de bus par heure.geojson")
+      .then(response => response.json())
+      .then(data => {
+        let couche = L.geoJSON(data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, { color: 'red', radius: 8 })
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup(
+              "<b>" + feature.properties.Nom + "</b><br>" +
+              "Commune : " + feature.properties.Commune + "<br>" +
+              "Desserte : " + feature.properties.desserte
+            )
+          }
+        })
+        toutesLesDonnees = toutesLesDonnees.concat(data.features)
+        clusterBus.addLayer(couche)
+        clusterBus.addTo(map)
+      })
+
+      fetch('Hebergement accessible en vélo.geojson')
+      .then(response => response.json())
+      .then(data => {
+        let couche = L.geoJSON(data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, { color: 'blue', radius: 8 })
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup(
+              "<b>" + feature.properties.Nom + "</b><br>" +
+              "Commune : " + feature.properties.Commune + "<br>" +
+              "Desserte : " + feature.properties.desserte
+            )
+          }
+        })
+        toutesLesDonnees = toutesLesDonnees.concat(data.features)
+        clusterHebvelo.addLayer(couche)
+        clusterHebvelo.addTo(map)
+      })
+
+      fetch("hebergement accessible et proche d'un arrêt observant plus d'un passage de bus par heure.geojson")
+      .then(response => response.json())
+      .then(data => {
+        let couche = L.geoJSON(data, {
+          pointToLayer: function(feature, latlng) {
+            return L.circleMarker(latlng, { color: 'orange', radius: 8 })
+          },
+          onEachFeature: function(feature, layer) {
+            layer.bindPopup(
+              "<b>" + feature.properties.Nom + "</b><br>" +
+              "Commune : " + feature.properties.Commune + "<br>" +
+              "Desserte : " + feature.properties.desserte
+            )
+          }
+        })
+        toutesLesDonnees = toutesLesDonnees.concat(data.features)
+        clusterHebbus.addLayer(couche)
+        clusterHebbus.addTo(map)
+      })
+
+      let cercleRecherche = null
+let markersProches = null
+
+map.on('click', function(e) {
+    let lat = e.latlng.lat
+    let lng = e.latlng.lng
+    let rayon = 5000
+
+    // Dessine un cercle pour visualiser la zone de recherche
+    if (cercleRecherche) map.removeLayer(cercleRecherche)
+    cercleRecherche = L.circle([lat, lng], { radius: rayon, color: 'blue' }).addTo(map)
+
+    // Appelle l'API
+    fetch(`http://127.0.0.1:8000/hebergements-proche/${lng}/${lat}/${rayon}`)
+        .then(response => response.json())
+        .then(data => {
+            if (markersProches) map.removeLayer(markersProches)
+            markersProches = L.geoJSON(data, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, { color: 'purple', radius: 10 })
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup("<b>" + feature.properties.nom + "</b><br>" + feature.properties.commune)
+                }
+            }).addTo(map)
+        })
+})
+
+map.on('click', function(e) {
+    let lat = e.latlng.lat
+    let lng = e.latlng.lng
+    let rayon = 5000
+
+    // Dessine un cercle pour visualiser la zone de recherche
+    if (cercleRecherche) map.removeLayer(cercleRecherche)
+    cercleRecherche = L.circle([lat, lng], { radius: rayon, color: 'blue' }).addTo(map)
+
+    // Appelle l'API
+    fetch(`http://127.0.0.1:8000/hebergements-proche/${lng}/${lat}/${rayon}`)
+        .then(response => response.json())
+        .then(data => {
+            if (markersProches) map.removeLayer(markersProches)
+            markersProches = L.geoJSON(data, {
+                pointToLayer: function(feature, latlng) {
+                    return L.circleMarker(latlng, { color: 'purple', radius: 10 })
+                },
+                onEachFeature: function(feature, layer) {
+                    layer.bindPopup("<b>" + feature.properties.nom + "</b><br>" + feature.properties.commune)
+                }
+            }).addTo(map)
+        })
+})
+
+  </script>
+</body>
+</html>

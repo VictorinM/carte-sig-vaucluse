@@ -1,0 +1,38 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.516, 5.147]
+      },
+      "properties": {
+        "nom": "Bangangté",
+        "population": 50000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.519, 5.147]
+      },
+      "properties": {
+        "nom": "Painchaud",
+        "population": 30000
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [10.521, 5.149]
+      },
+      "properties": {
+        "nom": "Bamenaboutique",
+        "population": 20000
+      }
+    }
+  ]
+}
