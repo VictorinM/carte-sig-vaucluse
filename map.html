@@ -1,333 +1,579 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessibilité Douce — Vaucluse</title>
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
   <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+
   <style>
+    :root {
+      --vert: #2d6a4f;
+      --vert-clair: #52b788;
+      --beige: #f8f4ef;
+      --blanc: #ffffff;
+      --gris: #6b7280;
+      --ombre: 0 4px 24px rgba(0,0,0,0.10);
+      --radius: 12px;
+    }
 
-  #conteneur {
-  position: relative;
-}
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-#map { 
-  height: 800px; 
-}
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--beige);
+      color: #1a1a1a;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
 
-#controles {
-  position: absolute;
-  top: 10px;
-  left: 50px;
-  background: white;
-  padding: 10px;
-  border-radius: 5px;
-  z-index: 1000;
-  width: 250px;
-}
+    /* HEADER */
+    #header {
+      background: var(--vert);
+      color: white;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-shrink: 0;
+      box-shadow: var(--ombre);
+      z-index: 2000;
+    }
 
-#legende {
-  position: absolute;
-  bottom: 30px;
-  right: 10px;
-  background: white;
-  padding: 10px;
-  border-radius: 5px;
-  z-index: 1000;
-}
+    #header-left h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      line-height: 1.2;
+    }
 
-#legende span {
-  display: inline-block;
-  width: 15px;
-  height: 15px;
-  margin-right: 5px;
-}
+    #header-left p {
+      font-size: 0.78rem;
+      opacity: 0.75;
+      margin-top: 2px;
+      font-weight: 300;
+    }
 
-#resultats {
-  list-style: none;
-  padding: 0;
-  max-height: 150px;
-  overflow-y: auto;
-}
+    #header-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-#resultats li {
-  cursor: pointer;
-  padding: 5px;
-  border-bottom: 1px solid #eee;
-}
+    #btn-apropos {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: white;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      transition: background 0.2s;
+    }
 
-#resultats li:hover {
-  background: #f0f0f0;
-}
+    #btn-apropos:hover { background: rgba(255,255,255,0.25); }
 
+    /* LAYOUT PRINCIPAL */
+    #main {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* PANNEAU LATERAL */
+    #panneau {
+      width: 280px;
+      background: var(--blanc);
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      overflow-y: auto;
+      flex-shrink: 0;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.06);
+      z-index: 1000;
+    }
+
+    .panneau-section {
+      padding: 16px;
+      border-bottom: 1px solid #f0ece8;
+    }
+
+    .panneau-section h3 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--gris);
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    /* RECHERCHE */
+    #recherche {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #e5e0da;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border 0.2s;
+      background: var(--beige);
+    }
+
+    #recherche:focus { border-color: var(--vert-clair); }
+
+    #resultats {
+      list-style: none;
+      margin-top: 8px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    #resultats li {
+      padding: 8px 10px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      border-radius: 6px;
+      transition: background 0.15s;
+      line-height: 1.4;
+    }
+
+    #resultats li:hover { background: #f0f9f5; color: var(--vert); }
+
+    #resultats li span {
+      display: block;
+      font-size: 0.72rem;
+      color: var(--gris);
+    }
+
+    /* COUCHES */
+    .couche-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 0;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+
+    .couche-item input[type="checkbox"] {
+      accent-color: var(--vert);
+      width: 15px;
+      height: 15px;
+      cursor: pointer;
+    }
+
+    .pastille {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* LEGENDE */
+    .legende-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      padding: 4px 0;
+      color: #444;
+    }
+
+    /* STATS */
+    #stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .stat-card {
+      background: var(--beige);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .stat-card .nombre {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--vert);
+      font-weight: 700;
+    }
+
+    .stat-card .label {
+      font-size: 0.68rem;
+      color: var(--gris);
+      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    /* CARTE */
+    #map {
+      flex: 1;
+      height: 100%;
+    }
+
+    /* MODAL A PROPOS */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.actif { display: flex; }
+
+    #modal {
+      background: white;
+      border-radius: var(--radius);
+      padding: 32px;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    }
+
+    #modal h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.4rem;
+      color: var(--vert);
+      margin-bottom: 6px;
+    }
+
+    #modal .auteur {
+      font-size: 0.82rem;
+      color: var(--gris);
+      margin-bottom: 16px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid #f0ece8;
+    }
+
+    #modal p {
+      font-size: 0.88rem;
+      line-height: 1.7;
+      color: #444;
+      margin-bottom: 12px;
+    }
+
+    #modal .sources {
+      font-size: 0.78rem;
+      color: var(--gris);
+      background: var(--beige);
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 16px;
+    }
+
+    #modal .sources strong { color: #333; }
+
+    #btn-fermer {
+      margin-top: 20px;
+      background: var(--vert);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem;
+      width: 100%;
+      transition: background 0.2s;
+    }
+
+    #btn-fermer:hover { background: #1e4d38; }
+
+    /* BADGE GITHUB */
+    #badge-github {
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: #1a1a1a;
+      color: white;
+      padding: 8px 14px;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      text-decoration: none;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: var(--ombre);
+      transition: background 0.2s;
+    }
+
+    #badge-github:hover { background: #333; }
+
+    /* RESPONSIVE MOBILE */
+    @media (max-width: 640px) {
+      #panneau {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        height: auto;
+        max-height: 45vh;
+        flex-direction: row;
+        overflow-x: auto;
+        overflow-y: hidden;
+        flex-wrap: nowrap;
+        z-index: 1500;
+        border-top: 2px solid #e5e0da;
+      }
+
+      .panneau-section {
+        min-width: 200px;
+        border-bottom: none;
+        border-right: 1px solid #f0ece8;
+      }
+
+      #main { flex-direction: column; }
+      #map { height: 55vh; }
+      #header-left h1 { font-size: 1rem; }
+    }
   </style>
 </head>
 <body>
-  
-  <div id="conteneur">
-  <div id="map"></div>
-  
-  <div id="controles">
-    <input type="text" id="recherche" placeholder="Rechercher un site..." oninput="rechercher()">
-    <ul id="resultats"></ul>
-    <label><input type="checkbox" checked onclick="toggleVelo()"> Sites accessibles en vélo</label><br>
-    <label><input type="checkbox" checked onclick="toggleBus()"> Sites accessibles en bus</label><br>
-    <label><input type="checkbox" checked onclick="toggleHebvelo()"> Hébergement accessible en vélo</label><br>
-    <label><input type="checkbox" checked onclick="toggleHebbus()"> Hébergement accessible en bus</label>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-left">
+    <h1>Accessibilite Douce — Vaucluse</h1>
+    <p>Sites de visite et hebergements accessibles en velo et en transport en commun</p>
+  </div>
+  <div id="header-right">
+    <button id="btn-apropos" onclick="document.getElementById('modal-overlay').classList.add('actif')">
+      A propos
+    </button>
   </div>
 </div>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
-  <script>
-    let map = L.map('map').setView([43.9, 5.1], 10)
-    let osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png')
 
-let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}')
+<!-- LAYOUT PRINCIPAL -->
+<div id="main">
 
-osm.addTo(map)
+  <!-- PANNEAU LATERAL -->
+  <div id="panneau">
 
-let fondsDeCartes = {
-  "OpenStreetMap": osm,
-  "Satellite": satellite
-}
+    <!-- RECHERCHE -->
+    <div class="panneau-section">
+      <h3>Recherche</h3>
+      <input type="text" id="recherche" placeholder="Nom d'un site, commune..." oninput="rechercher()">
+      <ul id="resultats"></ul>
+    </div>
 
-L.control.layers(fondsDeCartes).addTo(map)
-    let toutesLesDonnees = []
-    let clusterVelo = L.markerClusterGroup()
-    let clusterBus = L.markerClusterGroup()
-    let clusterHebvelo = L.markerClusterGroup()
-    let clusterHebbus = L.markerClusterGroup()
-    let visibleVelo = true
-    let visibleBus = true
-    let visibleHebvelo = true
-    let visibleHebbus = true
+    <!-- COUCHES -->
+    <div class="panneau-section">
+      <h3>Couches</h3>
+      <label class="couche-item">
+        <input type="checkbox" checked onclick="toggleVelo()">
+        <span class="pastille" style="background:#2d6a4f"></span>
+        Sites accessibles en velo
+      </label>
+      <label class="couche-item">
+        <input type="checkbox" checked onclick="toggleBus()">
+        <span class="pastille" style="background:#e63946"></span>
+        Sites accessibles en bus
+      </label>
+      <label class="couche-item">
+        <input type="checkbox" checked onclick="toggleHebvelo()">
+        <span class="pastille" style="background:#1d7ed8"></span>
+        Hebergements en velo
+      </label>
+      <label class="couche-item">
+        <input type="checkbox" checked onclick="toggleHebbus()">
+        <span class="pastille" style="background:#f4a261"></span>
+        Hebergements en bus
+      </label>
+    </div>
 
-    function rechercher() {
-  let texte = document.getElementById('recherche').value.toLowerCase()
-  let resultats = document.getElementById('resultats')
-  resultats.innerHTML = ''
+    <!-- LEGENDE -->
+    <div class="panneau-section">
+      <h3>Legende</h3>
+      <div class="legende-item">
+        <span class="pastille" style="background:#2d6a4f"></span>
+        Site accessible en velo
+      </div>
+      <div class="legende-item">
+        <span class="pastille" style="background:#e63946"></span>
+        Site accessible en bus (1+ passage/h)
+      </div>
+      <div class="legende-item">
+        <span class="pastille" style="background:#1d7ed8"></span>
+        Hebergement accessible en velo
+      </div>
+      <div class="legende-item">
+        <span class="pastille" style="background:#f4a261"></span>
+        Hebergement accessible en bus
+      </div>
+    </div>
 
-  if (texte.length < 2) return
+    <!-- STATISTIQUES -->
+    <div class="panneau-section">
+      <h3>Statistiques</h3>
+      <div id="stats">
+        <div class="stat-card">
+          <div class="nombre" id="stat-velo">—</div>
+          <div class="label">Sites en velo</div>
+        </div>
+        <div class="stat-card">
+          <div class="nombre" id="stat-bus">—</div>
+          <div class="label">Sites en bus</div>
+        </div>
+        <div class="stat-card">
+          <div class="nombre" id="stat-hebvelo">—</div>
+          <div class="label">Hebergements velo</div>
+        </div>
+        <div class="stat-card">
+          <div class="nombre" id="stat-hebbus">—</div>
+          <div class="label">Hebergements bus</div>
+        </div>
+      </div>
+    </div>
 
-  let filtres = toutesLesDonnees.filter(function(feature) {
-    return feature.properties.Nom.toLowerCase().includes(texte)
+  </div>
+
+  <!-- CARTE -->
+  <div id="map"></div>
+
+</div>
+
+<!-- MODAL A PROPOS -->
+<div id="modal-overlay" onclick="if(event.target===this) this.classList.remove('actif')">
+  <div id="modal">
+    <h2>A propos de cette carte</h2>
+    <p class="auteur">
+      <strong>DJETCHEU TOKO Victorine Maximilienne</strong><br>
+      Etudiante en Master 2 Geomatique — Universite d'Avignon
+    </p>
+    <p>
+      Cette application cartographique interactive analyse l'accessibilite des sites touristiques
+      et des hebergements du Vaucluse par les modes de transport doux — velo et transport en commun.
+    </p>
+    <p>
+      Elle s'inscrit dans une demarche de promotion de la mobilite durable dans le tourisme,
+      en identifiant les sites accessibles depuis les points de location de velos, les gares,
+      et les arrets de bus a forte frequence (plus d'un passage par heure).
+    </p>
+    <div class="sources">
+      <strong>Sources des donnees :</strong><br>
+      Donnees touristiques — Agence de Developpement Touristique du Vaucluse<br>
+      Reseau de transport — Zou ! (Region Sud)<br>
+      Fond de carte — OpenStreetMap contributors, Esri
+    </div>
+    <button id="btn-fermer" onclick="document.getElementById('modal-overlay').classList.remove('actif')">
+      Fermer
+    </button>
+  </div>
+</div>
+
+<!-- BADGE GITHUB -->
+<a id="badge-github" href="https://github.com/VictorinM/carte-sig-vaucluse" target="_blank">
+  Code source
+</a>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+<script>
+  let map = L.map('map').setView([43.9, 5.1], 10)
+
+  let osm = L.tileLayer('https://{s}.tile.openstreetmap.fr/osmfr/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
   })
-
-  filtres.forEach(function(feature) {
-    let li = document.createElement('li')
-    li.textContent = feature.properties.Nom + ' - ' + feature.properties.Commune
-    li.onclick = function() {
-      let lat = feature.geometry.coordinates[1]
-      let lng = feature.geometry.coordinates[0]
-      map.setView([lat, lng], 15)
-    }
-    resultats.appendChild(li)
+  let satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: '© Esri'
   })
-}
+  osm.addTo(map)
+  L.control.layers({ "OpenStreetMap": osm, "Satellite": satellite }).addTo(map)
 
-function creerGraphique() {
-  let communes = {}
+  let toutesLesDonnees = []
+  let clusterVelo    = L.markerClusterGroup()
+  let clusterBus     = L.markerClusterGroup()
+  let clusterHebvelo = L.markerClusterGroup()
+  let clusterHebbus  = L.markerClusterGroup()
+  let visibleVelo    = true
+  let visibleBus     = true
+  let visibleHebvelo = true
+  let visibleHebbus  = true
 
-  toutesLesDonnees.forEach(function(feature) {
-    let commune = feature.properties.Commune
-    if (commune) {
-      if (communes[commune]) {
-        communes[commune]++
-      } else {
-        communes[commune] = 1
+  function rechercher() {
+    let texte = document.getElementById('recherche').value.toLowerCase()
+    let resultats = document.getElementById('resultats')
+    resultats.innerHTML = ''
+    if (texte.length < 2) return
+    let filtres = toutesLesDonnees.filter(f =>
+      f.properties.Nom && f.properties.Nom.toLowerCase().includes(texte)
+    )
+    filtres.slice(0, 10).forEach(function(feature) {
+      let li = document.createElement('li')
+      li.innerHTML = feature.properties.Nom +
+        '<span>' + (feature.properties.Commune || '') + '</span>'
+      li.onclick = function() {
+        map.setView([feature.geometry.coordinates[1], feature.geometry.coordinates[0]], 15)
+        resultats.innerHTML = ''
+        document.getElementById('recherche').value = ''
       }
-    }
-  })
+      resultats.appendChild(li)
+    })
+  }
 
-  let labels = Object.keys(communes)
-  let valeurs = Object.values(communes)
+  function toggleVelo()    { visibleVelo    ? map.removeLayer(clusterVelo)    : map.addLayer(clusterVelo);    visibleVelo    = !visibleVelo }
+  function toggleBus()     { visibleBus     ? map.removeLayer(clusterBus)     : map.addLayer(clusterBus);     visibleBus     = !visibleBus }
+  function toggleHebvelo() { visibleHebvelo ? map.removeLayer(clusterHebvelo) : map.addLayer(clusterHebvelo); visibleHebvelo = !visibleHebvelo }
+  function toggleHebbus()  { visibleHebbus  ? map.removeLayer(clusterHebbus)  : map.addLayer(clusterHebbus);  visibleHebbus  = !visibleHebbus }
 
-  let ctx = document.getElementById('monGraphique').getContext('2d')
-  new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: labels,
-      datasets: [{
-        label: 'Nombre de sites',
-        data: valeurs,
-        backgroundColor: 'green'
-      }]
-    }
-  })
-}
-
-    function toggleVelo() {
-      if (visibleVelo) {
-        map.removeLayer(clusterVelo)
-        visibleVelo = false
-      } else {
-        map.addLayer(clusterVelo)
-        visibleVelo = true
-      }
-    }
-
-    function toggleBus() {
-      if (visibleBus) {
-        map.removeLayer(clusterBus)
-        visibleBus = false
-      } else {
-        map.addLayer(clusterBus)
-        visibleBus = true
-      }
-    }
-
-    function toggleHebvelo() {
-      if (visibleHebvelo) {
-        map.removeLayer(clusterHebvelo)
-        visibleHebvelo = false
-      } else {
-        map.addLayer(clusterHebvelo)
-        visibleHebvelo = true
-      }
-    }
-
-    function toggleHebbus() {
-      if (visibleHebbus) {
-        map.removeLayer(clusterHebbus)
-        visibleHebbus = false
-      } else {
-        map.addLayer(clusterHebbus)
-        visibleHebbus = true
-      }
-    }
-
-    fetch('http://127.0.0.1:8000/sites-velo')
-      .then(response => response.json())
+  function chargerCouche(url, couleur, cluster, statId) {
+    fetch(url)
+      .then(r => r.json())
       .then(data => {
         let couche = L.geoJSON(data, {
           pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, { color: 'green', radius: 8 })
+            return L.circleMarker(latlng, {
+              color: couleur,
+              fillColor: couleur,
+              fillOpacity: 0.7,
+              radius: 7,
+              weight: 1.5
+            })
           },
           onEachFeature: function(feature, layer) {
+            let p = feature.properties
             layer.bindPopup(
-              "<b>" + feature.properties.Nom + "</b><br>" +
-              "Commune : " + feature.properties.Commune + "<br>" +
-              "Desserte : " + feature.properties.desserte
+              '<div style="font-family:DM Sans,sans-serif;min-width:180px">' +
+              '<b style="font-size:0.95rem;color:#2d6a4f">' + (p.Nom || 'Sans nom') + '</b><br>' +
+              '<span style="color:#888;font-size:0.78rem">' + (p.Type_d_obj || '') + '</span><br><br>' +
+              (p.Commune  ? 'Commune : ' + p.Commune + '<br>' : '') +
+              (p.Adresse_1 ? 'Adresse : ' + p.Adresse_1 + '<br>' : '') +
+              (p.Tarifs_en_ ? 'Tarifs : ' + p.Tarifs_en_.substring(0, 60) + '...<br>' : '') +
+              (p.desserte ? '<br><span style="background:' + (p.desserte === 'desservi' ? '#d1fae5' : '#fee2e2') +
+                ';padding:2px 8px;border-radius:10px;font-size:0.75rem">' + p.desserte + '</span>' : '') +
+              '</div>'
             )
           }
         })
         toutesLesDonnees = toutesLesDonnees.concat(data.features)
-        clusterVelo.addLayer(couche)
-        clusterVelo.addTo(map)
+        cluster.addLayer(couche)
+        cluster.addTo(map)
+        if (statId) document.getElementById(statId).textContent = data.features.length
       })
+      .catch(() => console.log('Fichier non trouve : ' + url))
+  }
 
-    fetch("site de visite accessible et proche d'un arrêt observant plus d'un passage de bus par heure.geojson")
-      .then(response => response.json())
-      .then(data => {
-        let couche = L.geoJSON(data, {
-          pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, { color: 'red', radius: 8 })
-          },
-          onEachFeature: function(feature, layer) {
-            layer.bindPopup(
-              "<b>" + feature.properties.Nom + "</b><br>" +
-              "Commune : " + feature.properties.Commune + "<br>" +
-              "Desserte : " + feature.properties.desserte
-            )
-          }
-        })
-        toutesLesDonnees = toutesLesDonnees.concat(data.features)
-        clusterBus.addLayer(couche)
-        clusterBus.addTo(map)
-      })
-
-      fetch('Hebergement accessible en vélo.geojson')
-      .then(response => response.json())
-      .then(data => {
-        let couche = L.geoJSON(data, {
-          pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, { color: 'blue', radius: 8 })
-          },
-          onEachFeature: function(feature, layer) {
-            layer.bindPopup(
-              "<b>" + feature.properties.Nom + "</b><br>" +
-              "Commune : " + feature.properties.Commune + "<br>" +
-              "Desserte : " + feature.properties.desserte
-            )
-          }
-        })
-        toutesLesDonnees = toutesLesDonnees.concat(data.features)
-        clusterHebvelo.addLayer(couche)
-        clusterHebvelo.addTo(map)
-      })
-
-      fetch("hebergement accessible et proche d'un arrêt observant plus d'un passage de bus par heure.geojson")
-      .then(response => response.json())
-      .then(data => {
-        let couche = L.geoJSON(data, {
-          pointToLayer: function(feature, latlng) {
-            return L.circleMarker(latlng, { color: 'orange', radius: 8 })
-          },
-          onEachFeature: function(feature, layer) {
-            layer.bindPopup(
-              "<b>" + feature.properties.Nom + "</b><br>" +
-              "Commune : " + feature.properties.Commune + "<br>" +
-              "Desserte : " + feature.properties.desserte
-            )
-          }
-        })
-        toutesLesDonnees = toutesLesDonnees.concat(data.features)
-        clusterHebbus.addLayer(couche)
-        clusterHebbus.addTo(map)
-      })
-
-      let cercleRecherche = null
-let markersProches = null
-
-map.on('click', function(e) {
-    let lat = e.latlng.lat
-    let lng = e.latlng.lng
-    let rayon = 5000
-
-    // Dessine un cercle pour visualiser la zone de recherche
-    if (cercleRecherche) map.removeLayer(cercleRecherche)
-    cercleRecherche = L.circle([lat, lng], { radius: rayon, color: 'blue' }).addTo(map)
-
-    // Appelle l'API
-    fetch(`http://127.0.0.1:8000/hebergements-proche/${lng}/${lat}/${rayon}`)
-        .then(response => response.json())
-        .then(data => {
-            if (markersProches) map.removeLayer(markersProches)
-            markersProches = L.geoJSON(data, {
-                pointToLayer: function(feature, latlng) {
-                    return L.circleMarker(latlng, { color: 'purple', radius: 10 })
-                },
-                onEachFeature: function(feature, layer) {
-                    layer.bindPopup("<b>" + feature.properties.nom + "</b><br>" + feature.properties.commune)
-                }
-            }).addTo(map)
-        })
-})
-
-map.on('click', function(e) {
-    let lat = e.latlng.lat
-    let lng = e.latlng.lng
-    let rayon = 5000
-
-    // Dessine un cercle pour visualiser la zone de recherche
-    if (cercleRecherche) map.removeLayer(cercleRecherche)
-    cercleRecherche = L.circle([lat, lng], { radius: rayon, color: 'blue' }).addTo(map)
-
-    // Appelle l'API
-    fetch(`http://127.0.0.1:8000/hebergements-proche/${lng}/${lat}/${rayon}`)
-        .then(response => response.json())
-        .then(data => {
-            if (markersProches) map.removeLayer(markersProches)
-            markersProches = L.geoJSON(data, {
-                pointToLayer: function(feature, latlng) {
-                    return L.circleMarker(latlng, { color: 'purple', radius: 10 })
-                },
-                onEachFeature: function(feature, layer) {
-                    layer.bindPopup("<b>" + feature.properties.nom + "</b><br>" + feature.properties.commune)
-                }
-            }).addTo(map)
-        })
-})
-
-  </script>
+  chargerCouche('site de visite accessible en velo.geojson',   '#2d6a4f', clusterVelo,    'stat-velo')
+  chargerCouche("site de visite accessible et proche d'un arret observant plus d'un passage de bus par heure.geojson", '#e63946', clusterBus, 'stat-bus')
+  chargerCouche('Hebergement accessible en velo.geojson',       '#1d7ed8', clusterHebvelo, 'stat-hebvelo')
+  chargerCouche("hebergement accessible et proche d'un arret observant plus d'un passage de bus par heure.geojson", '#f4a261', clusterHebbus, 'stat-hebbus')
+</script>
 </body>
 </html>
